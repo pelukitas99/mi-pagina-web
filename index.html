@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escáner de Código QR</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/instascan/1.0.0/instascan.min.js"></script>
+    <style>
+        /* Estilos generales */
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #00c6ff, #0072ff);
+            color: #fff;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1 {
+            margin-top: 20px;
+            font-size: 24px;
+        }
+
+        /* Video del escáner */
+        video {
+            width: 90%;
+            max-width: 400px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+            margin-top: 20px;
+        }
+
+        /* Contenedor de información */
+        .info-container {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px auto;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .info-container p {
+            font-size: 18px;
+            margin: 10px 0;
+        }
+
+        .highlight {
+            font-weight: bold;
+            color: #ffeb3b;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 20px;
+            }
+
+            .info-container {
+                width: 95%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Escanea un Código QR</h1>
+    <video id="preview"></video>
+    
+    <div class="info-container">
+        <h2>Información del Producto</h2>
+        <p><strong>Nombre:</strong> <span id="nombreProducto" class="highlight">Esperando escaneo...</span></p>
+        <p><strong>Almacén:</strong> <span id="almacenProducto" class="highlight">-</span></p>
+    </div>
+
+    <script>
+        let csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSKHNIwPCopFbz6NDE-S2FM6U8NwtY696GXiqc4jv_ibp2eji-AHbXW_uIZJmGL9F5ErxCYqrZnoKgI/pub?output=csv";
+
+        function obtenerDatosDesdeCSV(qrCode) {
+            fetch(csvUrl)
+                .then(response => response.text())
+                .then(text => {
+                    let filas = text.split("\n").map(row => row.split(","));
+                    let encontrado = false;
+
+                    for (let i = 1; i < filas.length; i++) {
+                        let codigo = filas[i][0]?.trim();
+                        let nombre = filas[i][3]?.trim();
+                        let almacen = filas[i][6]?.trim();
+
+                        if (codigo == qrCode) {
+                            document.getElementById("nombreProducto").textContent = nombre;
+                            document.getElementById("almacenProducto").textContent = almacen;
+                            encontrado = true;
+                            break;
+                        }
+                    }
+
+                    if (!encontrado) {
+                        document.getElementById("nombreProducto").textContent = "No encontrado";
+                        document.getElementById("almacenProducto").textContent = "-";
+                    }
+                })
+                .catch(error => console.error("Error:", error));
+        }
+
+        let scanner = new Instascan.Scanner({ video: document.getElementById('preview') });
+
+        scanner.addListener('scan', function(content) {
+            obtenerDatosDesdeCSV(content);
+        });
+
+        Instascan.Camera.getCameras().then(function(cameras) {
+            if (cameras.length > 0) {
+                scanner.start(cameras[0]);
+            } else {
+                alert("No se encontró una cámara.");
+            }
+        }).catch(function(e) {
+            console.error(e);
+        });
+    </script>
+
+</body>
+</html>
